@@ -1,0 +1,13 @@
+[
+  {
+    "code": "contract EtherStore {\n      mapping(address => uint) public balances;\n  \n      function deposit() public payable {\n          balances[msg.sender] += msg.value;\n      }\n  \n      function withdraw() public {\n          uint bal = balances[msg.sender];\n          require(bal > 0);\n  \n          (bool sent, ) = msg.sender.call{value: bal}(\"\");\n          require(sent, \\\"Failed to send Ether\\\");\n  \n          balances[msg.sender] = 0;\n      }\n  \n      // Helper function to check the balance of this contract\n      function getBalance() public view returns (uint) {\n          return address(this).balance;\n      }\n  }",
+    "issues": [
+      {
+        "category": "reentrancy",
+        "location": "withdraw()",
+        "description": "The function withdraw() allows reentrancy.",
+        "impact": "high"
+      }
+    ]
+  }
+]

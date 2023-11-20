@@ -20,6 +20,6 @@ def run_benchmarks(llm_choices: list[str]):
     """
 
     # Load the benchmark data with pandas
-    df = read_json("/data/benchmark.jsonl", lines=True)
+    df = read_json("data/benchmark.json")
 
     print(df)
