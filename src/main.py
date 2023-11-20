@@ -1,8 +1,7 @@
-"""
-    Script to run the benchmark program
-"""
 from InquirerPy import prompt
-from modules.run_benchmarks import run_benchmarks
+from modules.generate_predictions import generate_predictions
+from pandas import DataFrame
+from lib.read_toml import read_toml
 
 questions = [
     {
@@ -15,7 +14,20 @@ questions = [
     },
 ]
 
+
 if __name__ == "__main__":
+    """
+    Script to run the benchmark program
+    """
     result = prompt(questions)
     llm_choices = result[0]
-    run_benchmarks(llm_choices)
+
+    # get the benchmark dataset
+    df = DataFrame(read_toml("data/benchmark.toml")["contracts"])
+
+    # run the benchmarks
+    all_predictions = generate_predictions(llm_choices)
+
+    # TODO: compare predictions to the actual issues from the dataset
+
+    # TODO: save the results to a file
