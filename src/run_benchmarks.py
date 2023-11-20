@@ -1,5 +1,5 @@
 from runners.gpt_3_5_turbo import gpt_3_5_turbo
-from runners.gpt_4_5_turbo import gpt_4_turbo
+from runners.gpt_4_turbo import gpt_4_turbo
 
 llm_choices = [
     {
