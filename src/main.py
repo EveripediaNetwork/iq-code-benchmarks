@@ -2,7 +2,7 @@
     Script to run the benchmark program
 """
 from InquirerPy import prompt
-from run_benchmarks import run_benchmarks
+from modules.run_benchmarks import run_benchmarks
 
 questions = [
     {
