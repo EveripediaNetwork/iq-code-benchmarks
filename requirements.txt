@@ -1,3 +1,5 @@
+# to auto generate this file, run `pipreqs . --force` in the root directory of this project
+# makes sure the pear dependencies are not overwritten by --force if there are any
 InquirerPy==0.3.4
 langchain==0.0.338
 pandas==2.1.3
