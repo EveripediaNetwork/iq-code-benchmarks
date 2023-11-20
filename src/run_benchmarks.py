@@ -1,6 +1,7 @@
 from runners.gpt_3_5_turbo import gpt_3_5_turbo
 from runners.gpt_4_turbo import gpt_4_turbo
-from pandas import read_json
+from pandas import DataFrame
+from lib.read_toml import read_toml
 
 llm_choices = [
     {
@@ -19,7 +20,6 @@ def run_benchmarks(llm_choices: list[str]):
     Run the benchmark program with the given LLMs
     """
 
-    # Load the benchmark data with pandas
-    df = read_json("data/benchmark.json")
+    df = DataFrame(read_toml("data/benchmark.toml")["contracts"])
 
     print(df)

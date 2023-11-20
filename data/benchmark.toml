@@ -1,0 +1,65 @@
+[[contracts]]
+code = '''
+contract EtherStore {
+    mapping(address => uint) public balances;
+
+    function deposit() public payable {
+        balances[msg.sender] += msg.value;
+    }
+
+    function withdraw() public {
+        uint bal = balances[msg.sender];
+        require(bal > 0);
+        
+        (bool sent, ) = msg.sender.call{value: bal}("");
+        require(sent, "Failed to send Ether");
+
+        balances[msg.sender] = 0;
+    }
+
+    // Helper function to check the balance of this contract
+    function getBalance() public view returns (uint) {
+        return address(this).balance;
+    }
+}
+'''
+
+[[contracts.issues]]
+type = "Reentrancy"
+function = "withdraw"
+line = 14
+description = "Reentrancy"
+
+[[contracts.issues]]
+type = "Reentrancy"
+function = "withdraw"
+line = 14
+description = "Reentrancy"
+
+[[contracts]]
+code = '''
+contract SimpleWallet {
+    mapping(address => uint) public balances;
+
+    function deposit() public payable {
+        balances[msg.sender] += msg.value;
+    }
+
+    function send(address payable to, uint amount) public {
+        require(balances[msg.sender] >= amount, "Insufficient funds");
+        
+        balances[msg.sender] -= amount;
+        to.transfer(amount);
+    }
+
+    function getBalance() public view returns (uint) {
+        return balances[msg.sender];
+    }
+}
+'''
+
+[[contracts.issues]]
+type = "Access Control"
+function = "send"
+line = 8
+description = "The send function does not have proper access control, allowing anyone to transfer funds."
