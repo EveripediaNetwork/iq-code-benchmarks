@@ -1,5 +1,6 @@
 from runners.gpt_3_5_turbo import gpt_3_5_turbo
 from runners.gpt_4_turbo import gpt_4_turbo
+from pandas import read_json
 
 llm_choices = [
     {
@@ -13,8 +14,12 @@ llm_choices = [
 ]
 
 
-def run_benchmark(llm_choices: list[str]):
+def run_benchmarks(llm_choices: list[str]):
     """
     Run the benchmark program with the given LLMs
-    in parallel.
     """
+
+    # Load the benchmark data with pandas
+    df = read_json("/data/benchmark.jsonl", lines=True)
+
+    print(df)

@@ -2,6 +2,7 @@
     Script to run the benchmark program
 """
 from InquirerPy import prompt
+from run_benchmarks import run_benchmarks
 
 questions = [
     {
@@ -17,4 +18,4 @@ questions = [
 if __name__ == "__main__":
     result = prompt(questions)
     llm_choices = result[0]
-    run_benchmark(llm_choices)
+    run_benchmarks(llm_choices)
