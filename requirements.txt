@@ -1,6 +1,13 @@
 # to auto generate this file, run `pipreqs . --force` in the root directory of this project
-# makes sure the pear dependencies are not overwritten by --force if there are any
+# makes sure to copy pear dependencies as they will be overwritten by --force and then paste them back in
+# after the pipreqs command is run
+
 InquirerPy==0.3.4
-langchain==0.0.338
+langchain==0.0.339
+multiprocess==0.70.15
 pandas==2.1.3
+python-dotenv==1.0.0
 toml==0.10.2
+
+# pear dependencies
+openai==1.3.3

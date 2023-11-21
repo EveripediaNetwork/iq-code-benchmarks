@@ -2,6 +2,10 @@ from InquirerPy import prompt
 from modules.generate_predictions import generate_predictions
 from pandas import DataFrame
 from lib.read_toml import read_toml
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 questions = [
     {
@@ -26,7 +30,8 @@ if __name__ == "__main__":
     df = DataFrame(read_toml("data/benchmark.toml")["contracts"])
 
     # run the benchmarks
-    all_predictions = generate_predictions(llm_choices)
+    all_predictions = generate_predictions(df, llm_choices)
+    print(all_predictions)
 
     # TODO: compare predictions to the actual issues from the dataset
 
