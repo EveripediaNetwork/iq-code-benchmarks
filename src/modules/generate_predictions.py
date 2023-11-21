@@ -28,6 +28,12 @@ def make_prediction(args) -> tuple[str, str, int]:
 
 
 def generate_predictions(df: DataFrame, llm_choices: list[str]):
+    """
+    Run the predictions on the contracts in the dataset
+    this adds {name-of-llm}_prediction columns to the DataFrame
+    which contains text of the predicted issues
+    """
+
     # filter llm_choices_map to only include the chosen LLMs
     chosen_llms = []
     for llm in llm_choices_map:
@@ -54,5 +60,3 @@ def generate_predictions(df: DataFrame, llm_choices: list[str]):
     # Update the DataFrame with the predictions
     for llm_name, prediction, loc in predictions:
         df.loc[loc, f"{llm_name}_prediction"] = prediction
-
-    return df
