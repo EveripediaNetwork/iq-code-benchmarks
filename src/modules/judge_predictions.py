@@ -40,8 +40,12 @@ def correct_issues(actual_issues: str, predicted_issues: str) -> list[int]:
     )
 
     correct = []
-    if result != "N/A":
-        correct = list(map(int, result.split(",")))
+    try:
+        if result != "N/A":
+            correct = list(map(int, result.split(",")))
+    except ValueError:
+        print("🚨 Error parsing judgement:", result)
+        pass
 
     return correct
 

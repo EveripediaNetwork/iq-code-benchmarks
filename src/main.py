@@ -35,13 +35,13 @@ if __name__ == "__main__":
     # run the predictions on the contracts in the dataset
     # this adds {name-of-llm}_prediction columns to the DataFrame
     # which contains text of the predicted issues
-    use_cached_df(generate_predictions, "cache/generations.toml", df, llm_choices)
+    use_cached_df(generate_predictions, df, llm_choices)
     print(df)
 
     # compare predictions to the actual issues from the dataset
     # this adds {name-of-llm}_correct columns to the DataFrame
     # which contains list of issue indices that were correctly predicted
-    use_cached_df(judge_predictions, "cache/judged.toml", df, llm_choices)
+    use_cached_df(judge_predictions, df, llm_choices)
     print(df)
 
     # TODO: save the results to a file
