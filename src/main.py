@@ -35,10 +35,12 @@ if __name__ == "__main__":
     # this adds {name-of-llm}_prediction columns to the DataFrame
     # which contains text of the predicted issues
     generate_predictions(df, llm_choices)
+    print(df)
 
     # compare predictions to the actual issues from the dataset
     # this adds {name-of-llm}_correct columns to the DataFrame
     # which contains list of issue indices that were correctly predicted
     judge_predictions(df, llm_choices)
+    print(df)
 
     # TODO: save the results to a file
