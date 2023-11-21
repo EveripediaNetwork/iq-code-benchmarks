@@ -1,7 +1,8 @@
 from predictors.gpt_3_5_turbo import gpt_3_5_turbo
 from predictors.gpt_4_turbo import gpt_4_turbo
 from pandas import DataFrame
-import multiprocess as mp
+from tqdm import tqdm
+from lib.prompts import issues_prediction_prompt
 
 llm_choices_map = [
     {
@@ -26,15 +27,20 @@ def generate_predictions(df: DataFrame, llm_choices: list[str]):
     # then, add the predictions to the dataframe
     # return the dataframe
 
-    predictions = df.copy()
+    predictions_df = df.copy()
 
-    for contract in df.iterrows():
-        # use multiprocessing to run the predictions in parallel
-        with mp.Pool(processes=len(chosen_llms)) as pool:
-            results = pool.map(lambda llm: llm["func"](contract[0]), chosen_llms)
+    for contract in tqdm(df.iterrows()):
+        loc, code = contract[0], contract[1]["code"]
+
+        # run the predictions
+        predictions = []
+        for llm in chosen_llms:
+            prompt = issues_prediction_prompt.format(code=code)
+            prediction = llm["func"](prompt)
+            predictions.append(prediction)
 
         # add the predictions to the dataframe
-        for result in results:
-            predictions.loc[contract[0], result["name"]] = result["prediction"]
+        for i in predictions:
+            predictions_df.at[loc, "prediction"] = i
 
-    return predictions
+    return predictions_df
