@@ -1,6 +1,7 @@
 from pandas import DataFrame
 from predictors.gpt_4_turbo import gpt_4_turbo
 from lib.prompts import judge_predictions_prompt
+from tqdm import tqdm
 
 
 def judge_predictions(df: DataFrame, llm_choices: list[str]) -> None:
@@ -14,7 +15,8 @@ def judge_predictions(df: DataFrame, llm_choices: list[str]) -> None:
 
         # loop through each row in the DataFrame and compare the predictions
         # to the actual issues
-        for _, row in df.iterrows():
+        p_bar = tqdm(df.iterrows(), total=len(df), desc="🔎 Judging predictions")
+        for _, row in p_bar:
             predicted_issues = row[f"{llm_name}_prediction"]
             actual_issues = row["issues"]
             correct = correct_issues(actual_issues, predicted_issues)
@@ -48,10 +50,10 @@ def format_key(issues: list[str]) -> str:
     """
     key = []
     for i, issue in enumerate(issues):
-        category = issue.category
-        description = issue.description
-        location = issue.location
-        impact = issue.impact
+        category = issue["category"]
+        description = issue["description"]
+        location = issue["location"]
+        impact = issue["impact"]
 
         key.append(
             f"{i + 1}) category: {category}\ndescription: {description}\nlocation: {location}\nimpact: {impact}\n"
