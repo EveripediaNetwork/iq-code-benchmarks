@@ -1,30 +1,8 @@
-from predictors.gpt_3_5_turbo import gpt_3_5_turbo
-from predictors.gpt_4_turbo import gpt_4_turbo
 from pandas import DataFrame
 from tqdm import tqdm
 from lib.prompts import issues_prediction_prompt
 from multiprocessing import Pool
-
-llm_choices_map = [
-    {
-        "name": "gpt-3.5-turbo",
-        "func": gpt_3_5_turbo,
-    },
-    {
-        "name": "gpt-4-turbo",
-        "func": gpt_4_turbo,
-    },
-]
-
-
-def make_prediction(args) -> tuple[str, str, int]:
-    """
-    Run the prediction with the given LLM
-    """
-    llm, contract_code, loc = args
-    prompt = issues_prediction_prompt.format(code=contract_code)
-    prediction = llm["func"](prompt)
-    return llm["name"], prediction, loc
+from predictors.main import llm_choices_map
 
 
 def generate_predictions(df: DataFrame, llm_choices: list[str]):
@@ -60,3 +38,13 @@ def generate_predictions(df: DataFrame, llm_choices: list[str]):
     # Update the DataFrame with the predictions
     for llm_name, prediction, loc in predictions:
         df.loc[loc, f"{llm_name}_prediction"] = prediction
+
+
+def make_prediction(args) -> tuple[str, str, int]:
+    """
+    Run the prediction with the given LLM
+    """
+    llm, contract_code, loc = args
+    prompt = issues_prediction_prompt.format(code=contract_code)
+    prediction = llm["func"](prompt)
+    return llm["name"], prediction, loc

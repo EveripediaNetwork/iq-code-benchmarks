@@ -11,6 +11,7 @@ def judge_predictions(df: DataFrame, llm_choices: list[str]) -> None:
         correct = []
         for loc, row in df.iterrows():
             predicted_issues = row[f"{llm_name}_prediction"]
+            print(predicted_issues, end="\n\n\n")
             actual_issues = row["issues"]
             if predicted_issues == actual_issues:
                 correct.append(loc)

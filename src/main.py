@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from modules.generate_predictions import generate_predictions
 from modules.judge_predictions import judge_predictions
 from lib.read_toml import read_toml
+from predictors.main import llm_choices_map
 
 load_dotenv()
 
@@ -12,7 +13,7 @@ questions = [
     {
         "type": "checkbox",
         "message": "Pick LLMs to benchmark:",
-        "choices": ["gpt-3.5-turbo", "gpt-4-turbo"],
+        "choices": map(lambda llm: llm["name"], llm_choices_map),
         "validate": lambda result: len(result) >= 1,
         "invalid_message": "should be at least 1 selection",
         "instruction": "(select at least 1)",
