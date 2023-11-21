@@ -25,41 +25,41 @@ contract EtherStore {
 '''
 
 [[contracts.issues]]
-type = "Reentrancy"
-function = "withdraw"
-line = 14
-description = "Reentrancy"
-
-[[contracts.issues]]
-type = "Reentrancy"
-function = "withdraw"
-line = 14
-description = "Reentrancy"
+type = "reentrancy-eth"
+location = "withdraw()"
+description = "The contract allows users to withdraw their balance multiple times before the balance is updated."
+impact = "High"
 
 [[contracts]]
 code = '''
-contract SimpleWallet {
+contract TimeLock {
     mapping(address => uint) public balances;
+    mapping(address => uint) public lockTime;
 
-    function deposit() public payable {
+    function deposit() external payable {
         balances[msg.sender] += msg.value;
+        lockTime[msg.sender] = block.timestamp + 1 weeks;
     }
 
-    function send(address payable to, uint amount) public {
-        require(balances[msg.sender] >= amount, "Insufficient funds");
-        
-        balances[msg.sender] -= amount;
-        to.transfer(amount);
+    function increaseLockTime(uint _secondsToIncrease) public {
+        lockTime[msg.sender] += _secondsToIncrease;
     }
 
-    function getBalance() public view returns (uint) {
-        return balances[msg.sender];
+    function withdraw() public {
+        require(balances[msg.sender] > 0, "Insufficient funds");
+        require(block.timestamp > lockTime[msg.sender], "Lock time not expired");
+
+        uint amount = balances[msg.sender];
+        balances[msg.sender] = 0;
+
+        (bool sent, ) = msg.sender.call{value: amount}("");
+        require(sent, "Failed to send Ether");
     }
 }
 '''
 
 [[contracts.issues]]
-type = "Access Control"
-function = "send"
+type = "arthmetic"
+function = "increaseLockTime()"
 line = 8
-description = "The send function does not have proper access control, allowing anyone to transfer funds."
+description = "The lock time can be easily overflowed by a malicious user which will allow them to withdraw funds earlier than expected."
