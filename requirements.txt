@@ -4,7 +4,6 @@
 
 InquirerPy==0.3.4
 langchain==0.0.339
-multiprocess==0.70.15
 pandas==2.1.3
 python-dotenv==1.0.0
 toml==0.10.2
