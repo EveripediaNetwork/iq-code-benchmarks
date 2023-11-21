@@ -42,4 +42,4 @@ if __name__ == "__main__":
     # which contains list of issue indices that were correctly predicted
     use_cached_df(judge_predictions, df, llm_choices)
 
-    # TODO: save the results to a file
+    # TODO: calculate metrics
