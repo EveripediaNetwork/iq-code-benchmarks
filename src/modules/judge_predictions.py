@@ -4,7 +4,7 @@ from lib.prompts import judge_predictions_prompt
 from tqdm import tqdm
 
 
-def judge_predictions(df: DataFrame, llm_choices: list[str]) -> None:
+def judge_predictions(df: DataFrame, llm_choices: list[str]) -> DataFrame:
     """
     Compare the predictions to the actual issues from the dataset
     and appends {name-of-llm}_correct columns to the DataFrame
@@ -23,6 +23,8 @@ def judge_predictions(df: DataFrame, llm_choices: list[str]) -> None:
             new_correct_col.append(correct)
 
         df[f"{llm_name}_correct"] = new_correct_col
+
+    return df
 
 
 def correct_issues(actual_issues: str, predicted_issues: str) -> list[int]:

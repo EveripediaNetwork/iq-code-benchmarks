@@ -3,8 +3,9 @@ from pandas import DataFrame
 from dotenv import load_dotenv
 from modules.generate_predictions import generate_predictions
 from modules.judge_predictions import judge_predictions
-from lib.read_toml import read_toml
+from lib.toml_utils import read_toml
 from predictors.main import llm_choices_map
+from lib.use_cached_df import use_cached_df
 
 load_dotenv()
 
@@ -29,18 +30,18 @@ if __name__ == "__main__":
     llm_choices = result[0]
 
     # get the benchmark dataset
-    df = DataFrame(read_toml("data/benchmark.toml")["contracts"])
+    df = read_toml("data/benchmark.toml", "contracts")
 
     # run the predictions on the contracts in the dataset
     # this adds {name-of-llm}_prediction columns to the DataFrame
     # which contains text of the predicted issues
-    generate_predictions(df, llm_choices)
+    use_cached_df(generate_predictions, "cache/generations.toml", df, llm_choices)
     print(df)
 
     # compare predictions to the actual issues from the dataset
     # this adds {name-of-llm}_correct columns to the DataFrame
     # which contains list of issue indices that were correctly predicted
-    judge_predictions(df, llm_choices)
+    use_cached_df(judge_predictions, "cache/judged.toml", df, llm_choices)
     print(df)
 
     # TODO: save the results to a file
