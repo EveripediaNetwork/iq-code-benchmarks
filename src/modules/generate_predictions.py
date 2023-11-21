@@ -28,8 +28,9 @@ def generate_predictions(df: DataFrame, llm_choices: list[str]):
     # return the dataframe
 
     predictions_df = df.copy()
+    p_bar = tqdm(df.iterrows(), total=df.shape[0], desc="🧬 Generating predictions")
 
-    for contract in tqdm(df.iterrows()):
+    for contract in p_bar:
         loc, code = contract[0], contract[1]["code"]
 
         # run the predictions
