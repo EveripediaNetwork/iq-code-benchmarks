@@ -5,7 +5,7 @@ from modules.generate_predictions import generate_predictions
 from modules.judge_predictions import judge_predictions
 from lib.toml_utils import read_toml
 from predictors.main import llm_choices_map
-from lib.use_cached_df import use_cached_df
+from lib.cache_guard import cache_guard
 
 load_dotenv()
 
@@ -35,11 +35,11 @@ if __name__ == "__main__":
     # run the predictions on the contracts in the dataset
     # this adds {name-of-llm}_prediction columns to the DataFrame
     # which contains text of the predicted issues
-    use_cached_df(generate_predictions, df, llm_choices)
+    df = cache_guard(generate_predictions, df, llm_choices)
 
     # compare predictions to the actual issues from the dataset
     # this adds {name-of-llm}_correct columns to the DataFrame
     # which contains list of issue indices that were correctly predicted
-    use_cached_df(judge_predictions, df, llm_choices)
+    df = cache_guard(judge_predictions, df, llm_choices)
 
     # TODO: calculate metrics
