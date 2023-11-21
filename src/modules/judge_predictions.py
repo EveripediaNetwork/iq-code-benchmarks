@@ -26,7 +26,8 @@ def judge_predictions(df: DataFrame, llm_choices: list[str]) -> None:
 def correct_issues(actual_issues: str, predicted_issues: str) -> list[int]:
     """
     Compare the predictions to the actual issues and return the indices of the
-    issues that were correctly predicted
+    issues that were correctly predicted. This uses gpt-4-turbo to compare the
+    issues.
     """
     result = gpt_4_turbo(
         judge_predictions_prompt.format(
@@ -45,4 +46,14 @@ def format_key(issues: list[str]) -> str:
     """
     Format the issues list to be displayed in the prompt
     """
-    return "\n".join([f"{i}: {issues[i]}" for i in range(len(issues))]) + "\n"
+    key = []
+    for i, issue in enumerate(issues):
+        category = issue.category
+        description = issue.description
+        location = issue.location
+        impact = issue.impact
+
+        key.append(
+            f"{i + 1}) category: {category}\ndescription: {description}\nlocation: {location}\nimpact: {impact}\n"
+        )
+    return "\n".join(key)
