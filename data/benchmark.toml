@@ -26,7 +26,7 @@ contract EtherStore {
 
 [[contracts.issues]]
 category = "reentrancy-eth"
-location = "withdraw()"
+location = "EtherStore.withdraw()"
 description = "The contract allows users to withdraw their balance multiple times before the balance is updated."
 impact = "High"
 
@@ -60,6 +60,168 @@ contract TimeLock {
 
 [[contracts.issues]]
 category = "arthmetic"
-location = "increaseLockTime()"
+location = "TimeLock.increaseLockTime()"
 description = "The lock time can be easily overflowed by a malicious user which will allow them to withdraw funds earlier than expected."
 impact = "High"
+
+[[contracts]]
+code = '''
+contract EtherGame {
+    uint public targetAmount = 7 ether;
+    address public winner;
+
+    function deposit() public payable {
+        require(msg.value == 1 ether, "You can only send 1 Ether");
+
+        uint balance = address(this).balance;
+        require(balance <= targetAmount, "Game is over");
+
+        if (balance == targetAmount) {
+            winner = msg.sender;
+        }
+    }
+
+    function claimReward() public {
+        require(msg.sender == winner, "Not winner");
+
+        (bool sent, ) = msg.sender.call{value: address(this).balance}("");
+        require(sent, "Failed to send Ether");
+    }
+}
+'''
+
+[[contracts.issues]]
+category = "force-ether"
+location = "EtherGame"
+description = "Malicious users can force send ether to contract to make it reach more than the target amount. This will prevent the game from ending and no one will be able to claim the reward."
+impact = "High"
+
+[[contracts]]
+code = '''
+contract Vault {
+    uint public count = 123;
+    address public owner = msg.sender;
+    bool public isTrue = true;
+    uint16 public u16 = 31;
+    bytes32 private password;
+
+    uint public constant someConst = 123;
+
+    bytes32[3] public data;
+
+    struct User {
+        uint id;
+        bytes32 password;
+    }
+
+
+    User[] private users;
+
+    mapping(uint => User) private idToUser;
+
+    constructor(bytes32 _password) {
+        password = _password;
+    }
+
+    function addUser(bytes32 _password) public {
+        User memory user = User({id: users.length, password: _password});
+
+        users.push(user);
+        idToUser[user.id] = user;
+    }
+
+    function getArrayLocation(
+        uint slot,
+        uint index,
+        uint elementSize
+    ) public pure returns (uint) {
+        return uint(keccak256(abi.encodePacked(slot))) + (index * elementSize);
+    }
+
+    function getMapLocation(uint slot, uint key) public pure returns (uint) {
+        return uint(keccak256(abi.encodePacked(key, slot)));
+    }
+}
+'''
+[[contracts.issues]]    
+category = "secret-storage"
+location = "Vault"
+description = "The contract stores sensitive data in the contract storage. even though the data is private, it can be easily accessed by anyone. by inspecting the contract storage slots."
+impact = "High"
+
+[[contracts]]
+code = '''
+contract FindThisHash {
+    bytes32 public constant hash =
+        0x564ccaf7594d66b1eaaea24fe01f0585bf52ee70852af4eac0cc4b04711cd0e2;
+
+    constructor() payable {}
+
+    function solve(string memory solution) public {
+        require(hash == keccak256(abi.encodePacked(solution)), "Incorrect answer");
+
+        (bool sent, ) = msg.sender.call{value: 10 ether}("");
+        require(sent, "Failed to send Ether");
+    }
+}
+'''
+[[contracts.issues]]
+category = "front-running"
+location = "FindThisHash.solve()"
+description = "The contract is vulnerable to front-running attack. A malicious user can monitor the contract for transactions and submit a transaction with a higher gas price to claim the reward."
+impact = "Medium"
+
+[[contracts]]
+code = '''
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v4.5/contracts/utils/cryptography/ECDSA.sol";
+
+contract MultiSigWallet {
+    using ECDSA for bytes32;
+
+    address[2] public owners;
+
+    constructor(address[2] memory _owners) payable {
+        owners = _owners;
+    }
+
+    function deposit() external payable {}
+
+    function transfer(address _to, uint _amount, bytes[2] memory _sigs) external {
+        bytes32 txHash = getTxHash(_to, _amount);
+        require(_checkSigs(_sigs, txHash), "invalid sig");
+
+        (bool sent, ) = _to.call{value: _amount}("");
+        require(sent, "Failed to send Ether");
+    }
+
+    function getTxHash(address _to, uint _amount) public view returns (bytes32) {
+        return keccak256(abi.encodePacked(_to, _amount));
+    }
+
+    function _checkSigs(
+        bytes[2] memory _sigs,
+        bytes32 _txHash
+    ) private view returns (bool) {
+        bytes32 ethSignedHash = _txHash.toEthSignedMessageHash();
+
+        for (uint i = 0; i < _sigs.length; i++) {
+            address signer = ethSignedHash.recover(_sigs[i]);
+            bool valid = signer == owners[i];
+
+            if (!valid) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
+'''
+[[contracts.issues]]
+category = "replay-attack"
+location = "MultiSigWallet.transfer()"
+description = "The contract is vulnerable to replay attack. A malicious user can replay a transaction to drain the contract."
+impact = "Medium"
