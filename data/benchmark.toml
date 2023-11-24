@@ -23,7 +23,6 @@ contract EtherStore {
     }
 }
 '''
-
 [[contracts.issues]]
 category = "reentrancy-eth"
 location = "EtherStore.withdraw()"
@@ -57,7 +56,6 @@ contract TimeLock {
     }
 }
 '''
-
 [[contracts.issues]]
 category = "arthmetic"
 location = "TimeLock.increaseLockTime()"
@@ -89,7 +87,6 @@ contract EtherGame {
     }
 }
 '''
-
 [[contracts.issues]]
 category = "force-ether"
 location = "EtherGame"
@@ -226,7 +223,6 @@ location = "MultiSigWallet.transfer()"
 description = "The contract is vulnerable to replay attack. A malicious user can replay a transaction to drain the contract."
 impact = "Medium"
 
-
 [[contracts]]
 code = '''
 pragma solidity ^0.8.20;
@@ -288,8 +284,9 @@ category = "tx-origin"
 location = "Wallet.transfer()"
 description = "The contract uses tx.origin to check if the transaction is initiated by the owner. This method is not reliable as it will return true for transactions that are initiated by a contract."
 impact = "Medium"
+
 [[contracts]]
-code="""
+code='''
 // file: contracts/UnstoppableVault.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
@@ -409,75 +406,9 @@ contract UnstoppableVault is IERC3156FlashLender, ReentrancyGuard, Owned, ERC462
      */
     function afterDeposit(uint256 assets, uint256 shares) internal override nonReentrant {}
 }
-
-// file: contracts/ReceiverUnstoppable.sol
-
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-import "@openzeppelin/contracts/interfaces/IERC3156FlashBorrower.sol";
-import "solmate/src/auth/Owned.sol";
-import { UnstoppableVault, ERC20 } from "../unstoppable/UnstoppableVault.sol";
-
-/**
- * @title ReceiverUnstoppable
- * @author Damn Vulnerable DeFi (https://damnvulnerabledefi.xyz)
- */
-contract ReceiverUnstoppable is Owned, IERC3156FlashBorrower {
-    UnstoppableVault private immutable pool;
-
-    error UnexpectedFlashLoan();
-
-    constructor(address poolAddress) Owned(msg.sender) {
-        pool = UnstoppableVault(poolAddress);
-    }
-
-    function onFlashLoan(
-        address initiator,
-        address token,
-        uint256 amount,
-        uint256 fee,
-        bytes calldata
-    ) external returns (bytes32) {
-        if (initiator != address(this) || msg.sender != address(pool) || token != address(pool.asset()) || fee != 0)
-            revert UnexpectedFlashLoan();
-
-        ERC20(token).approve(address(pool), amount);
-
-        return keccak256("IERC3156FlashBorrower.onFlashLoan");
-    }
-
-    function executeFlashLoan(uint256 amount) external onlyOwner {
-        address asset = address(pool.asset());
-        pool.flashLoan(
-            this,
-            asset,
-            amount,
-            bytes("")
-        );
-    }
-}
-
-"""
+'''
 [[contracts.issues]]
 category = "dos"
 location = "UnstoppableVault.flashLoan()"
-description = """"
-The goal of the first challenge is to perform a DOS (Denial of Service) attack to the contract.
-
-There is a vulnerability in the flashLoan function:
-```solidity
-uint256 balanceBefore = totalAssets();
-if (convertToShares(totalSupply) != balanceBefore) revert InvalidBalance(); // enforce ERC4626 requirement
-ERC4626 proposes a standard for tokenized vault with functionalities to track shares of user deposits in the vault, usually to determine the rewards to distribute for a given user who staked their tokens in the vault.
-```
-In this case, the asset is the underlying token that user deposit/withdraw into the vault. And the share is the amount of vault tokens that the vault mint/burn for users to represent their deposited assets. In this challenge, the underlying token is 'DVT', and the vault token is deployed as 'oDVT'.
-
-Based on ERC4626, convertToShares() function takes input of an amount of assets('DVT'), and calculates the amount of share('oDVT') the vault should mint, based on the ratio of user's deposited assets. Now we are able to see two issues here.
-
-(1) (convertToShares(totalSupply) != balanceBefore) enforces the condition where totalSupply of the vault tokens should always equal totalAsset of underlying tokens before any flash loan execution. If there are other implementations of the vault that divert asset tokens to other contracts, the flashLoan function would be inactive.
-
-(2) totalAssets function is overridden to return always the balance of the vault contract asset.balanceOf(address(this)). And this is a separate system of accounting implemented through tracking supply of vault tokens.
-
-The attack is to create a conflict between the two accounting systems by manually transferring 'DVT' to the vault.
-"""
+description = "The contract is vulnerable to denial of service attack. A malicious user can just send the tokens out side of the deposit function which triggers assertion in flashLoan function."
+impact = "High"
