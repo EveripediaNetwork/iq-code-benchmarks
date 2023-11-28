@@ -1,14 +1,13 @@
 from InquirerPy import prompt
-from pandas import DataFrame
 from dotenv import load_dotenv
 from modules.generate_predictions import generate_predictions
 from modules.judge_predictions import judge_predictions
+from modules.calculate_metrics import calculate_metrics
 from lib.toml_utils import read_toml
 from predictors.main import llm_choices_map
 from lib.cache_guard import cache_guard
 
 load_dotenv()
-
 
 questions = [
     {
@@ -42,4 +41,5 @@ if __name__ == "__main__":
     # which contains list of issue indices that were correctly predicted
     df = cache_guard(judge_predictions, df, llm_choices)
 
-    # TODO: calculate metrics
+    # calculate metrics
+    df = cache_guard(calculate_metrics, df, llm_choices)

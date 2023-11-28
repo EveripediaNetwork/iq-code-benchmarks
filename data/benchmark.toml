@@ -140,7 +140,7 @@ contract Vault {
     }
 }
 '''
-[[contracts.issues]]    
+[[contracts.issues]]
 category = "secret-storage"
 location = "Vault"
 description = "The contract stores sensitive data in the contract storage. even though the data is private, it can be easily accessed by anyone. by inspecting the contract storage slots."
@@ -286,7 +286,7 @@ description = "The contract uses tx.origin to check if the transaction is initia
 impact = "Medium"
 
 [[contracts]]
-code='''
+code = '''
 // file: contracts/UnstoppableVault.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
