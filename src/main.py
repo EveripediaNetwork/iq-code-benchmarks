@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from modules.generate_predictions import generate_predictions
 from modules.judge_predictions import judge_predictions
 from modules.calculate_metrics import calculate_metrics
+from modules.print_results import print_results
 from lib.toml_utils import read_toml
 from predictors.main import llm_choices_map
 from lib.cache_guard import cache_guard
@@ -41,5 +42,9 @@ if __name__ == "__main__":
     # which contains list of issue indices that were correctly predicted
     df = cache_guard(judge_predictions, df, llm_choices)
 
-    # calculate metrics
+    # calculate metrics based on the predictions and judgements
+    # this adds {name-of-llm}_{recall,precision,f1_score,accuracy} columns to the DataFrame
     df = cache_guard(calculate_metrics, df, llm_choices)
+
+    # print the results to the console
+    print_results(df, llm_choices)
