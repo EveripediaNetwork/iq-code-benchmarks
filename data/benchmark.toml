@@ -288,131 +288,102 @@ impact = "Medium"
 
 [[contracts]]
 code = '''
-// file: contracts/UnstoppableVault.sol
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "solmate/src/utils/FixedPointMathLib.sol";
-import "solmate/src/utils/ReentrancyGuard.sol";
-import { SafeTransferLib, ERC4626, ERC20 } from "solmate/src/mixins/ERC4626.sol";
-import "solmate/src/auth/Owned.sol";
-import { IERC3156FlashBorrower, IERC3156FlashLender } from "@openzeppelin/contracts/interfaces/IERC3156.sol";
-
-/**
- * @title UnstoppableVault
- * @author Damn Vulnerable DeFi (https://damnvulnerabledefi.xyz)
- */
-contract UnstoppableVault is IERC3156FlashLender, ReentrancyGuard, Owned, ERC4626 {
-    using SafeTransferLib for ERC20;
-    using FixedPointMathLib for uint256;
-
-    uint256 public constant FEE_FACTOR = 0.05 ether;
-    uint64 public constant GRACE_PERIOD = 30 days;
-
-    uint64 public immutable end = uint64(block.timestamp) + GRACE_PERIOD;
-
-    address public feeRecipient;
-
-    error InvalidAmount(uint256 amount);
-    error InvalidBalance();
-    error CallbackFailed();
-    error UnsupportedCurrency();
-
-    event FeeRecipientUpdated(address indexed newFeeRecipient);
-
-    constructor(ERC20 _token, address _owner, address _feeRecipient)
-        ERC4626(_token, "Oh Damn Valuable Token", "oDVT")
-        Owned(_owner)
-    {
-        feeRecipient = _feeRecipient;
-        emit FeeRecipientUpdated(_feeRecipient);
+contract SecureVault {
+    mapping(address => uint256) private balances;
+    
+    function deposit() external payable {
+        balances[msg.sender] += msg.value;
     }
-
-    /**
-     * @inheritdoc IERC3156FlashLender
-     */
-    function maxFlashLoan(address _token) public view returns (uint256) {
-        if (address(asset) != _token)
-            return 0;
-
-        return totalAssets();
-    }
-
-    /**
-     * @inheritdoc IERC3156FlashLender
-     */
-    function flashFee(address _token, uint256 _amount) public view returns (uint256 fee) {
-        if (address(asset) != _token)
-            revert UnsupportedCurrency();
-
-        if (block.timestamp < end && _amount < maxFlashLoan(_token)) {
-            return 0;
-        } else {
-            return _amount.mulWadUp(FEE_FACTOR);
+    
+    function withdraw(uint256 amount) external {
+        if (balances[msg.sender] >= amount) {
+            balances[msg.sender] -= amount;
+            (bool success, ) = msg.sender.call{value: amount}("");
+            require(success, "Withdrawal failed");
         }
     }
-
-    function setFeeRecipient(address _feeRecipient) external onlyOwner {
-        if (_feeRecipient != address(this)) {
-            feeRecipient = _feeRecipient;
-            emit FeeRecipientUpdated(_feeRecipient);
-        }
+    
+    function transfer(address payable recipient, uint256 amount) external {
+        (bool success, ) = recipient.call{value: amount}("");
+        require(success, "Transfer failed");
     }
-
-    /**
-     * @inheritdoc ERC4626
-     */
-    function totalAssets() public view override returns (uint256) {
-        assembly { // better safe than sorry
-            if eq(sload(0), 2) {
-                mstore(0x00, 0xed3ba6a6)
-                revert(0x1c, 0x04)
-            }
-        }
-        return asset.balanceOf(address(this));
+    
+    function destroy() external {
+        selfdestruct(payable(msg.sender));
     }
-
-    /**
-     * @inheritdoc IERC3156FlashLender
-     */
-    function flashLoan(
-        IERC3156FlashBorrower receiver,
-        address _token,
-        uint256 amount,
-        bytes calldata data
-    ) external returns (bool) {
-        if (amount == 0) revert InvalidAmount(0); // fail early
-        if (address(asset) != _token) revert UnsupportedCurrency(); // enforce ERC3156 requirement
-        uint256 balanceBefore = totalAssets();
-        if (convertToShares(totalSupply) != balanceBefore) revert InvalidBalance(); // enforce ERC4626 requirement
-        uint256 fee = flashFee(_token, amount);
-        // transfer tokens out + execute callback on receiver
-        ERC20(_token).safeTransfer(address(receiver), amount);
-        // callback must return magic value, otherwise assume it failed
-        if (receiver.onFlashLoan(msg.sender, address(asset), amount, fee, data) != keccak256("IERC3156FlashBorrower.onFlashLoan"))
-            revert CallbackFailed();
-        // pull amount + fee from receiver, then pay the fee to the recipient
-        ERC20(_token).safeTransferFrom(address(receiver), address(this), amount + fee);
-        ERC20(_token).safeTransfer(feeRecipient, fee);
-        return true;
+    
+    fallback() external payable {
+        balances[msg.sender] += msg.value;
     }
-
-    /**
-     * @inheritdoc ERC4626
-     */
-    function beforeWithdraw(uint256 assets, uint256 shares) internal override nonReentrant {}
-
-    /**
-     * @inheritdoc ERC4626
-     */
-    function afterDeposit(uint256 assets, uint256 shares) internal override nonReentrant {}
+    
+    receive() external payable {
+        balances[msg.sender] += msg.value;
+    }
+    
+    function generateRandomNumber() external view returns (uint256) {
+        return uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty)));
+    }
+    
+    function withdrawBalance() external {
+        require(balances[msg.sender] > 0, "No balance to withdraw");
+        uint256 amount = balances[msg.sender];
+        balances[msg.sender] = 0;
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Withdrawal failed");
+    }
+    
+    function increment(uint256 value) external pure returns (uint256) {
+        return value + 1;
+    }
 }
 '''
 [[contracts.issues]]
-category = "Denial of Service"
-location = "UnstoppableVault.flashLoan()"
-description = "The contract is vulnerable to denial of service attack. A malicious user can just send the tokens out side of the deposit function which triggers assertion in flashLoan function."
+category = "Lack of Input Validation"
+location = "VulnerableContract.deposit()"
+description = "The contract does not validate the input value before adding it to the user balance. This will allow a malicious user to overflow their balance."
 impact = "High"
+[[contracts.issues]]
+category = "Reentrancy"
+location = "VulnerableContract.withdraw()"
+description = "The contract allows users to withdraw their balance multiple times before the balance is updated."
+impact = "High"
+[[contracts.issues]]
+category = "Unchecked External Call"
+location = "VulnerableContract.transfer()"
+description = "The contract uses call to transfer ether to the user. This method is not reliable as it will fail if the user is a contract with a fallback function that consumes more than 2300 gas."
+impact = "Medium"
+[[contracts.issues]]
+category = "Use of Deprecated Solidity Functions"
+location = "VulnerableContract.destroy()"
+description = "The contract uses selfdestruct to destroy the contract and send the remaining ether to the owner. This method is deprecated and should be avoided."
+impact = "Low"
+[[contracts.issues]]
+category = "Unprotected Fallback Function"
+location = "VulnerableContract.fallback()"
+description = "The contract does not have a fallback function to reject ether sent to the contract."
+impact = "Low"
+[[contracts.issues]]
+category = "Unprotected Receive Function"
+location = "VulnerableContract.receive()"
+description = "The contract does not have a receive function to reject ether sent to the contract."
+impact = "Low"
+[[contracts.issues]]
+category = "Insecure Randomness"
+location = "VulnerableContract.generateRandomNumber()"
+description = "The contract uses block.timestamp and block.difficulty to generate a random number. This method is not secure as the miner can manipulate the block difficulty."
+impact = "Low"
+[[contracts.issues]]
+category = "Unprotected Ether Withdrawal"
+location = "VulnerableContract.withdrawBalance()"
+description = "The contract allows users to withdraw their balance without checking if the user has enough balance."
+impact = "Low"
+[[contracts.issues]]
+category = "Integer Overflow or Underflow"
+location = "VulnerableContract.increment()"
+description = "The contract does not check for overflow or underflow when incrementing the value."
+impact = "Low"
 
 [[contracts]]
 code = '''
