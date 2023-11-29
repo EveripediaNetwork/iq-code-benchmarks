@@ -333,10 +333,6 @@ contract SecureVault {
         (bool success, ) = msg.sender.call{value: amount}("");
         require(success, "Withdrawal failed");
     }
-    
-    function increment(uint256 value) external pure returns (uint256) {
-        return value + 1;
-    }
 }
 '''
 [[contracts.issues]]
@@ -378,11 +374,6 @@ impact = "Low"
 category = "Unprotected Ether Withdrawal"
 location = "VulnerableContract.withdrawBalance()"
 description = "The contract allows users to withdraw their balance without checking if the user has enough balance."
-impact = "Low"
-[[contracts.issues]]
-category = "Integer Overflow or Underflow"
-location = "VulnerableContract.increment()"
-description = "The contract does not check for overflow or underflow when incrementing the value."
 impact = "Low"
 
 [[contracts]]
