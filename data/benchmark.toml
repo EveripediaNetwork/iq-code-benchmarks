@@ -1,5 +1,6 @@
 [[contracts]]
 code = '''
+pragma solidity ^0.6.0;
 contract EtherStore {
     mapping(address => uint) public balances;
 
@@ -9,11 +10,8 @@ contract EtherStore {
 
     function withdraw() public {
         uint bal = balances[msg.sender];
-        require(bal > 0);
-        
-        (bool sent, ) = msg.sender.call{value: bal}("");
-        require(sent, "Failed to send Ether");
-
+        require(bal > 0);        
+        require(msg.sender.send(bal), "Failed to send Ether");
         balances[msg.sender] = 0;
     }
 
@@ -52,8 +50,7 @@ contract TimeLock {
         uint amount = balances[msg.sender];
         balances[msg.sender] = 0;
 
-        (bool sent, ) = msg.sender.call{value: amount}("");
-        require(sent, "Failed to send Ether");
+        require(msg.sender.send(amount), "Failed to send Ether");
     }
 }
 '''
@@ -65,6 +62,7 @@ impact = "High"
 
 [[contracts]]
 code = '''
+pragma solidity ^0.6.0;
 contract EtherGame {
     uint public targetAmount = 7 ether;
     address public winner;
@@ -82,9 +80,7 @@ contract EtherGame {
 
     function claimReward() public {
         require(msg.sender == winner, "Not winner");
-
-        (bool sent, ) = msg.sender.call{value: address(this).balance}("");
-        require(sent, "Failed to send Ether");
+        require(msg.sender.send(address(this).balance), "Failed to send Ether");
     }
 }
 '''
@@ -96,48 +92,36 @@ impact = "High"
 
 [[contracts]]
 code = '''
-contract Vault {
-    uint public count = 123;
-    address public owner = msg.sender;
-    bool public isTrue = true;
-    uint16 public u16 = 31;
-    bytes32 private password;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
-    uint public constant someConst = 123;
-
-    bytes32[3] public data;
-
+contract UserAuthentication {
     struct User {
-        uint id;
-        bytes32 password;
+        bool isRegistered;
+        bytes32 passwordHash;
     }
 
+    mapping(address => User) private users;
 
-    User[] private users;
+    // Event to be emitted when a new user is added
+    event UserAdded(address user);
 
-    mapping(uint => User) private idToUser;
-
-    constructor(bytes32 _password) {
-        password = _password;
+    // Add a new user with a hashed password
+    function addUser(address _userAddress, bytes32 _hashedPassword) public {
+        require(!users[_userAddress].isRegistered, "User already registered.");
+        users[_userAddress] = User(true, _hashedPassword);
+        emit UserAdded(_userAddress);
     }
 
-    function addUser(bytes32 _password) public {
-        User memory user = User({id: users.length, password: _password});
-
-        users.push(user);
-        idToUser[user.id] = user;
+    // Authenticate a user with their password hash
+    function authenticate(address _userAddress, bytes32 _hashedPassword) public view returns (bool) {
+        require(users[_userAddress].isRegistered, "User not registered.");
+        return users[_userAddress].passwordHash == _hashedPassword;
     }
 
-    function getArrayLocation(
-        uint slot,
-        uint index,
-        uint elementSize
-    ) public pure returns (uint) {
-        return uint(keccak256(abi.encodePacked(slot))) + (index * elementSize);
-    }
-
-    function getMapLocation(uint slot, uint key) public pure returns (uint) {
-        return uint(keccak256(abi.encodePacked(key, slot)));
+    // Helper function to hash the password
+    function hashPassword(string memory _password) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_password));
     }
 }
 '''
@@ -149,6 +133,7 @@ impact = "High"
 
 [[contracts]]
 code = '''
+pragma solidity ^0.6.0;
 contract FindThisHash {
     bytes32 public constant hash =
         0x564ccaf7594d66b1eaaea24fe01f0585bf52ee70852af4eac0cc4b04711cd0e2;
@@ -157,9 +142,7 @@ contract FindThisHash {
 
     function solve(string memory solution) public {
         require(hash == keccak256(abi.encodePacked(solution)), "Incorrect answer");
-
-        (bool sent, ) = msg.sender.call{value: 10 ether}("");
-        require(sent, "Failed to send Ether");
+        require(msg.sender.send(10 ether), "Failed to send Ether");
     }
 }
 '''
@@ -171,7 +154,6 @@ impact = "Medium"
 
 [[contracts]]
 code = '''
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v4.5/contracts/utils/cryptography/ECDSA.sol";
@@ -230,9 +212,6 @@ pragma solidity ^0.8.20;
 
 contract Target {
     function isContract(address account) public view returns (bool) {
-        // This method relies on extcodesize, which returns 0 for contracts in
-        // construction, since the code is only stored at the end of the
-        // constructor execution.
         uint size;
         assembly {
             size := extcodesize(account)
@@ -247,15 +226,6 @@ contract Target {
         pwned = true;
     }
 }
-
-contract FailedAttack {
-    // Attempting to call Target.protected will fail,
-    // Target block calls from contract
-    function pwn(address _target) external {
-        // This will fail
-        Target(_target).protected();
-    }
-}
 '''
 [[contracts.issues]]
 category = "Zero Size Check"
@@ -265,6 +235,7 @@ impact = "Medium"
 
 [[contracts]]
 code = '''
+pragma solidity ^0.6.0;
 contract Wallet {
     address public owner;
 
@@ -274,9 +245,7 @@ contract Wallet {
 
     function transfer(address payable _to, uint _amount) public {
         require(tx.origin == owner, "Not owner");
-
-        (bool sent, ) = _to.call{value: _amount}("");
-        require(sent, "Failed to send Ether");
+        require(_to.send(amount), "Failed to send Ether");
     }
 }
 '''
@@ -300,8 +269,7 @@ contract SecureVault {
     function withdraw(uint256 amount) external {
         if (balances[msg.sender] >= amount) {
             balances[msg.sender] -= amount;
-            (bool success, ) = msg.sender.call{value: amount}("");
-            require(success, "Withdrawal failed");
+            require(msg.sender.send(amount), "Withdrawal failed");
         }
     }
     
@@ -312,10 +280,6 @@ contract SecureVault {
     
     function destroy() external {
         selfdestruct(payable(msg.sender));
-    }
-    
-    fallback() external payable {
-        balances[msg.sender] += msg.value;
     }
     
     receive() external payable {
@@ -330,8 +294,7 @@ contract SecureVault {
         require(balances[msg.sender] > 0, "No balance to withdraw");
         uint256 amount = balances[msg.sender];
         balances[msg.sender] = 0;
-        (bool success, ) = msg.sender.call{value: amount}("");
-        require(success, "Withdrawal failed");
+        require(msg.sender.send(amount), "Withdrawal failed");
     }
 }
 '''
@@ -356,11 +319,6 @@ location = "VulnerableContract.destroy()"
 description = "The contract uses selfdestruct to destroy the contract and send the remaining ether to the owner. This method is deprecated and should be avoided."
 impact = "Low"
 [[contracts.issues]]
-category = "Unprotected Fallback Function"
-location = "VulnerableContract.fallback()"
-description = "The contract does not have a fallback function to reject ether sent to the contract."
-impact = "Low"
-[[contracts.issues]]
 category = "Unprotected Receive Function"
 location = "VulnerableContract.receive()"
 description = "The contract does not have a receive function to reject ether sent to the contract."
@@ -375,170 +333,3 @@ category = "Unprotected Ether Withdrawal"
 location = "VulnerableContract.withdrawBalance()"
 description = "The contract allows users to withdraw their balance without checking if the user has enough balance."
 impact = "Low"
-
-[[contracts]]
-code = '''
-// A chain-game contract that maintains a 'throne' which agents may pay to rule.
-// See www.kingoftheether.com & https://github.com/kieranelby/KingOfTheEtherThrone .
-
-pragma solidity ^0.4.19;
-
-contract KingOfTheEtherThrone {
-
-    struct Monarch {
-        // Address to which their compensation will be sent.
-        address etherAddress;
-        // A name by which they wish to be known.
-        // NB: Unfortunately "string" seems to expose some bugs in web3.
-        string name;
-        // How much did they pay to become monarch?
-        uint claimPrice;
-        // When did their rule start (based on block.timestamp)?
-        uint coronationTimestamp;
-    }
-
-    // The wizard is the hidden power behind the throne; they
-    // occupy the throne during gaps in succession and collect fees.
-    address wizardAddress;
-
-    // Used to ensure only the wizard can do some things.
-    modifier onlywizard { if (msg.sender == wizardAddress) _; }
-
-    // How much must the first monarch pay?
-    uint constant startingClaimPrice = 100 finney;
-
-    // The next claimPrice is calculated from the previous claimFee
-    // by multiplying by claimFeeAdjustNum and dividing by claimFeeAdjustDen -
-    // for example, num=3 and den=2 would cause a 50% increase.
-    uint constant claimPriceAdjustNum = 3;
-    uint constant claimPriceAdjustDen = 2;
-
-    // How much of each claimFee goes to the wizard (expressed as a fraction)?
-    // e.g. num=1 and den=100 would deduct 1% for the wizard, leaving 99% as
-    // the compensation fee for the usurped monarch.
-    uint constant wizardCommissionFractionNum = 1;
-    uint constant wizardCommissionFractionDen = 100;
-
-    // How much must an agent pay now to become the monarch?
-    uint public currentClaimPrice;
-
-    // The King (or Queen) of the Ether.
-    Monarch public currentMonarch;
-
-    // Earliest-first list of previous throne holders.
-    Monarch[] public pastMonarchs;
-
-    // Create a new throne, with the creator as wizard and first ruler.
-    // Sets up some hopefully sensible defaults.
-    function KingOfTheEtherThrone() {
-        wizardAddress = msg.sender;
-        currentClaimPrice = startingClaimPrice;
-        currentMonarch = Monarch(
-            wizardAddress,
-            "[Vacant]",
-            0,
-            block.timestamp
-        );
-    }
-
-    function numberOfMonarchs() constant returns (uint n) {
-        return pastMonarchs.length;
-    }
-
-    // Fired when the throne is claimed.
-    // In theory can be used to help build a front-end.
-    event ThroneClaimed(
-        address usurperEtherAddress,
-        string usurperName,
-        uint newClaimPrice
-    );
-
-    // Fallback function - simple transactions trigger this.
-    // Assume the message data is their desired name.
-    function() {
-        claimThrone(string(msg.data));
-    }
-
-    // Claim the throne for the given name by paying the currentClaimFee.
-    function claimThrone(string name) {
-
-        uint valuePaid = msg.value;
-
-        // If they paid too little, reject claim and refund their money.
-        if (valuePaid < currentClaimPrice) {
-            msg.sender.send(valuePaid);
-            return;
-        }
-
-        // If they paid too much, continue with claim but refund the excess.
-        if (valuePaid > currentClaimPrice) {
-            uint excessPaid = valuePaid - currentClaimPrice;
-            msg.sender.send(excessPaid);
-            valuePaid = valuePaid - excessPaid;
-        }
-
-        // The claim price payment goes to the current monarch as compensation
-        // (with a commission held back for the wizard). We let the wizard's
-        // payments accumulate to avoid wasting gas sending small fees.
-
-        uint wizardCommission = (valuePaid * wizardCommissionFractionNum) / wizardCommissionFractionDen;
-
-        uint compensation = valuePaid - wizardCommission;
-
-        if (currentMonarch.etherAddress != wizardAddress) {
-            currentMonarch.etherAddress.send(compensation);
-        } else {
-            // When the throne is vacant, the fee accumulates for the wizard.
-        }
-
-        // Usurp the current monarch, replacing them with the new one.
-        pastMonarchs.push(currentMonarch);
-        currentMonarch = Monarch(
-            msg.sender,
-            name,
-            valuePaid,
-            block.timestamp
-        );
-
-        // Increase the claim fee for next time.
-        // Stop number of trailing decimals getting silly - we round it a bit.
-        uint rawNewClaimPrice = currentClaimPrice * claimPriceAdjustNum / claimPriceAdjustDen;
-        if (rawNewClaimPrice < 10 finney) {
-            currentClaimPrice = rawNewClaimPrice;
-        } else if (rawNewClaimPrice < 100 finney) {
-            currentClaimPrice = 100 szabo * (rawNewClaimPrice / 100 szabo);
-        } else if (rawNewClaimPrice < 1 ether) {
-            currentClaimPrice = 1 finney * (rawNewClaimPrice / 1 finney);
-        } else if (rawNewClaimPrice < 10 ether) {
-            currentClaimPrice = 10 finney * (rawNewClaimPrice / 10 finney);
-        } else if (rawNewClaimPrice < 100 ether) {
-            currentClaimPrice = 100 finney * (rawNewClaimPrice / 100 finney);
-        } else if (rawNewClaimPrice < 1000 ether) {
-            currentClaimPrice = 1 ether * (rawNewClaimPrice / 1 ether);
-        } else if (rawNewClaimPrice < 10000 ether) {
-            currentClaimPrice = 10 ether * (rawNewClaimPrice / 10 ether);
-        } else {
-            currentClaimPrice = rawNewClaimPrice;
-        }
-
-        // Hail the new monarch!
-        ThroneClaimed(currentMonarch.etherAddress, currentMonarch.name, currentClaimPrice);
-    }
-
-    // Used only by the wizard to collect his commission.
-    function sweepCommission(uint amount) onlywizard {
-        wizardAddress.send(amount);
-    }
-
-    // Used only by the wizard to collect his commission.
-    function transferOwnership(address newOwner) onlywizard {
-        wizardAddress = newOwner;
-    }
-
-}
-'''
-[[contracts.issues]]
-category = "Unchecked External Call"
-location = "KingOfTheEtherThrone.sweepCommission(), kingOfTheEtherThrone.claimThrone()"
-description = "The contract uses send to transfer ether to the user. This method is not reliable as it will fail if the user is a contract with a fallback function that consumes more than 2300 gas. In the case of the King of the Ether contract, this resulted in accidental loss of Ether for some contract users, due to refunds not being sent."
-impact = "Medium"
