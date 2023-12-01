@@ -1,30 +1,24 @@
 from langchain.prompts import PromptTemplate
 
 issues_prediction_prompt = PromptTemplate.from_template(
-    """
-You will be analyzing a smart contract to identify any potential security vulnerabilities present within the code. Your output will be crucial for improving the contract's security posture.
+    """You will be given a smart contract. Your task is to find any vulnerabilities in the contract.
 
-Please make sure you are provided with the following information:
-- The complete, unaltered smart contract code enclosed within <code> tags.
+You are provided with:
+- <code>: the smart contract code
 
-Follow these instructions carefully:
+Dos
+- Analyze the <code> and find any vulnerabilities
+- Categorize the vulnerabilities found into High, Medium, Low
+- Provide a description of the vulnerability
+- Follow the format of the output
 
-Dos:
-- Conduct a thorough examination of the provided <code> to uncover any vulnerabilities.
-- Assign a severity level to each vulnerability found: High, Medium, Low, or as an Optimization effort.
-- Include a clear, concise description of each vulnerability, detailing why it is a security concern.
-- Use the specified format without deviation for your output.
+Dont's
+- Do not provide a solution or fix to the vulnerability
+- Do not provide improvement suggestions that are not serious vulnerabilities (e.g. gas optimization, logging, magic numbers, etc.)
+- Do not provide opinionated views on the code.
 
-Don'ts:
-- Refrain from suggesting corrections or methods to rectify the identified vulnerabilities.
-- Avoid listing vulnerabilities that merely offer informational severity without signifying a real threat to security.
-- Ensure that your analysis remains objective and refrain from incorporating subjective judgments about the code quality or style.
-
-Your output should strictly follow the format below, with each identified vulnerability detailed on its own separate lines followed by a blank line:
-
-<S No.>) <Vulnerability Category> - <Vulnerability Description> [<Impact>]
-
-What follows is the smart contract code:
+The output should be lines of vulnerabilities seperated by new empty line **exclusively** in the format of:
+<S No.>) <Vulnerability Category> - <Vulnerability Description> [<impact>]
 
 <code>
 {code}
