@@ -22,14 +22,8 @@ def print_results(df: DataFrame, llm_choices: list[str]):
         results_df.loc["F1 Score", llm_name] = df[f"{llm_name}_f1_score"].mean()
         results_df.loc["Accuracy", llm_name] = df[f"{llm_name}_accuracy"].mean()
 
-        avg_toy_f1_score = 0
-        avg_real_f1_score = 0
-
-        for _, row in df.iterrows():
-            if row["type"] == "toy":
-                avg_toy_f1_score += row[f"{llm_name}_f1_score"]
-            else:
-                avg_real_f1_score += row[f"{llm_name}_f1_score"]
+        avg_toy_f1_score = df[df["type"] == "toy"][f"{llm_name}_f1_score"].mean()
+        avg_real_f1_score = df[df["type"] == "real"][f"{llm_name}_f1_score"].mean()
 
         results_df.loc["IQ Score", llm_name] = (
             0.2 * avg_toy_f1_score + 0.8 * avg_real_f1_score
