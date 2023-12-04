@@ -257,39 +257,41 @@ impact = "Medium"
 
 [[contracts]]
 code = '''
-pragma solidity ^0.8.0;
+pragma solidity 0.5.1;
 
 contract SecureVault {
     mapping(address => uint256) private balances;
-    
+
     function deposit() external payable {
         balances[msg.sender] += msg.value;
     }
-    
+
     function withdraw(uint256 amount) external {
         if (balances[msg.sender] >= amount) {
             balances[msg.sender] -= amount;
             require(msg.sender.send(amount), "Withdrawal failed");
         }
     }
-    
+
     function transfer(address payable recipient, uint256 amount) external {
-        (bool success, ) = recipient.call{value: amount}("");
-        require(success, "Transfer failed");
+        require(recipient.send(amount), "Transfer failed");
     }
-    
+
     function destroy() external {
-        selfdestruct(payable(msg.sender));
+        selfdestruct(msg.sender);
     }
-    
-    receive() external payable {
+
+    function receive() external payable {
         balances[msg.sender] += msg.value;
     }
-    
+
     function generateRandomNumber() external view returns (uint256) {
-        return uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty)));
+        return
+            uint256(
+                keccak256(abi.encodePacked(block.timestamp, block.difficulty))
+            );
     }
-    
+
     function withdrawBalance() external {
         require(balances[msg.sender] > 0, "No balance to withdraw");
         uint256 amount = balances[msg.sender];
