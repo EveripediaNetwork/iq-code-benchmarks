@@ -1,3 +1,6 @@
+# =========================
+# ##### TOY CONTRACTS #####
+# =========================
 [[contracts]]
 type = 'toy'
 code = '''
@@ -399,3 +402,7 @@ category = "Floating Pragma"
 location = "TimeLock"
 description = "The contract uses a floating pragma which can cause the contract to behave differently when compiled with a different compiler version."
 impact = "Low"
+
+# ========================
+# #### REAL CONTRACTS ####
+# ========================
