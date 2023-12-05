@@ -1,5 +1,6 @@
 from predictors.gpt_3_5_turbo import gpt_3_5_turbo
 from predictors.gpt_4_turbo import gpt_4_turbo
+from predictors.sol_auditor_v1 import sol_auditor_v1
 
 """
 Contains the list of LLMs that can be used for benchmarking
@@ -17,4 +18,5 @@ llm_choices_map = [
         "name": "gpt-4-turbo",
         "func": gpt_4_turbo,
     },
+    {"name": "sol-auditor-v1", "func": sol_auditor_v1},
 ]
