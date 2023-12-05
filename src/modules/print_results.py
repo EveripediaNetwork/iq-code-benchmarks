@@ -20,6 +20,7 @@ def print_results(df: DataFrame, llm_choices: list[str]):
         results_df.loc["Recall", llm_name] = df[f"{llm_name}_recall"].mean()
         results_df.loc["Precision", llm_name] = df[f"{llm_name}_precision"].mean()
         results_df.loc["F1 Score", llm_name] = df[f"{llm_name}_f1_score"].mean()
+        results_df.loc["F2 Score", llm_name] = df[f"{llm_name}_f2_score"].mean()
         results_df.loc["Accuracy", llm_name] = df[f"{llm_name}_accuracy"].mean()
 
         avg_toy_f1_score = df[df["type"] == "toy"][f"{llm_name}_f1_score"].mean()
