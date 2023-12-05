@@ -17,5 +17,4 @@ def sol_auditor_v1(prompt: str, **kwargs):
             }
         }
     )
-
-    return "".join(run_request["output"])
+    return "".join(run_request)

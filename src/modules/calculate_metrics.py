@@ -19,18 +19,31 @@ def calculate_metrics(df: DataFrame, llm_choices: list[str]) -> DataFrame:
             false_positive = len(row[f"{llm_name}_false_positives"])
             false_negative = len(row[f"{llm_name}_false_negatives"])
 
-            recall = true_positive / (true_positive + false_negative)
-            precision = true_positive / (true_positive + false_positive)
+            try:
+                recall = true_positive / (true_positive + false_negative)
+            except ZeroDivisionError:
+                recall = 0
 
-            if precision + recall == 0:
-                f1_score = 0
-                f2_score = 0
-            else:
+            try:
+                precision = true_positive / (true_positive + false_positive)
+            except ZeroDivisionError:
+                precision = 0
+
+            try:
                 f1_score = 2 * (precision * recall) / (precision + recall)
                 f2_score = (
                     (1 + 2**2) * (precision * recall) / (2**2 * precision + recall)
                 )
-            accuracy = true_positive / (true_positive + false_positive + false_negative)
+            except ZeroDivisionError:
+                f1_score = 0
+                f2_score = 0
+
+            try:
+                accuracy = true_positive / (
+                    true_positive + false_positive + false_negative
+                )
+            except ZeroDivisionError:
+                accuracy = 0
 
             df.loc[i, f"{llm_name}_recall"] = recall
             df.loc[i, f"{llm_name}_precision"] = precision
