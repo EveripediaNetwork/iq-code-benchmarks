@@ -42,7 +42,7 @@ if __name__ == "__main__":
     # which contains list of issue indices that were correctly predicted
     df = cache_guard(judge_predictions, df, llm_choices)
 
-    # calculate metrics based on the predictions and judgements
+    # calculate metrics based on the predictions and judgement
     # this adds {name-of-llm}_{recall,precision,f1_score,accuracy} columns to the DataFrame
     df = cache_guard(calculate_metrics, df, llm_choices)
 

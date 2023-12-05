@@ -1,4 +1,8 @@
+# =========================
+# ##### TOY CONTRACTS #####
+# =========================
 [[contracts]]
+type = 'toy'
 code = '''
 pragma solidity ^0.6.0;
 contract EtherStore {
@@ -28,6 +32,7 @@ description = "The contract allows users to withdraw their balance multiple time
 impact = "High"
 
 [[contracts]]
+type = 'toy'
 code = '''
 pragma solidity ^0.6.0;
 contract TimeLock {
@@ -61,6 +66,7 @@ description = "The lock time can be easily overflowed by a malicious user which 
 impact = "High"
 
 [[contracts]]
+type = 'toy'
 code = '''
 pragma solidity ^0.6.0;
 contract EtherGame {
@@ -91,6 +97,7 @@ description = "Malicious users can force send ether to contract to make it reach
 impact = "High"
 
 [[contracts]]
+type = 'toy'
 code = '''
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
@@ -132,6 +139,7 @@ description = "The contract stores sensitive data in the contract storage. even 
 impact = "High"
 
 [[contracts]]
+type = 'toy'
 code = '''
 pragma solidity ^0.6.0;
 contract FindThisHash {
@@ -153,6 +161,7 @@ description = "The contract is vulnerable to front-running attack. A malicious u
 impact = "Medium"
 
 [[contracts]]
+type = 'toy'
 code = '''
 pragma solidity ^0.8.20;
 
@@ -207,6 +216,7 @@ description = "The contract is vulnerable to replay attack. A malicious user can
 impact = "Medium"
 
 [[contracts]]
+type = 'toy'
 code = '''
 pragma solidity ^0.8.20;
 
@@ -234,6 +244,7 @@ description = "The contract uses extcodesize to check if the address is a contra
 impact = "Medium"
 
 [[contracts]]
+type = 'toy'
 code = '''
 pragma solidity ^0.6.0;
 contract Wallet {
@@ -256,6 +267,7 @@ description = "The contract uses tx.origin to check if the transaction is initia
 impact = "Medium"
 
 [[contracts]]
+type = 'toy'
 code = '''
 pragma solidity 0.5.1;
 
@@ -336,6 +348,7 @@ location = "VulnerableContract.withdrawBalance()"
 description = "The contract allows users to withdraw their balance without checking if the user has enough balance."
 impact = "Low"
 [[contracts]]
+type = 'toy'
 code = '''
 pragma solidity ^0.5.0;
 
@@ -391,3 +404,7 @@ category = "Floating Pragma"
 location = "TimeLock"
 description = "The contract uses a floating pragma which can cause the contract to behave differently when compiled with a different compiler version."
 impact = "Low"
+
+# ========================
+# #### REAL CONTRACTS ####
+# ========================
