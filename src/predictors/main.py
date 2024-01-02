@@ -20,5 +20,5 @@ llm_choices_map = [
         "func": gpt_4_turbo,
     },
     {"name": "sol-auditor-v1", "func": sol_auditor_v1},
-    {"name": "cortexlm", "func": cortexlm},
+    {"name": "cortexlm", "func": cortexlm, "code_only": True},
 ]

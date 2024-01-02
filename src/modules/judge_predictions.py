@@ -64,7 +64,7 @@ def make_judgement(args) -> tuple[int, str, dict]:
 
     try:
         # remove the prompt from the result (only keep the json which should start from first { and end with last })
-        result = result[result.find("{") : result.rfind("}") + 1]
+        result = result[result.find("{"): result.rfind("}") + 1]
 
         # parse the json result
         result = loads(result)
@@ -79,7 +79,7 @@ def make_judgement(args) -> tuple[int, str, dict]:
         }
 
         return loc, llm_name, parsed_result
-    except:
+    except (Exception):
         cprint(f"🚨 Error parsing judgement: {result}", "white", "on_red")
         error_result = {
             "false_negatives": None,
