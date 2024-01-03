@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from cortex.loaders.string import Loader
+from cortex.loaders.path import Loader
 from cortex.slicers.solidity import Slicer
 from cortex.llm.openai import LLM, ModelNames
 from cortex.mappers.solidity_vulnerabilities import Mapper as SolidityVulnerabilitiesMapper  # noqa: E501
@@ -15,6 +15,8 @@ from cortex import (
     Context,
     Reducer,
 )
+import tempfile
+import os
 
 
 def cortexlm(prompt: str, **kwargs):
@@ -22,7 +24,14 @@ def cortexlm(prompt: str, **kwargs):
     Run the IQ Code CortexLM with the given prompt. here the prompt
     must be proper solidity code.
     """
-    loader = Loader(prompt)
+    # Create a temporary file and store the code there and load it into loader
+    with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+        f.write(prompt)
+        f.flush()
+        loader = Loader(f.name)
+        file_name = f.name
+
+    loader = Loader(file_name)
     slicers = [Slicer(code, include_global_code=True) for code in loader.code]
 
     json_validator = JSONValidator([{
@@ -80,6 +89,7 @@ def cortexlm(prompt: str, **kwargs):
                     "description": str
                 }}
             ]
+        Do not wrap the output in any codeblocks, directly paste the JSON.
         """,
         tag='footer',
     )
@@ -88,7 +98,7 @@ def cortexlm(prompt: str, **kwargs):
 
     llm = LLM(model=ModelNames.GPT_3_5)
 
-    reducer = Reducer()
+    reducer = Reducer(llm, None)
 
     cortex = Cortex(
         prompts=prompts,
@@ -99,5 +109,8 @@ def cortexlm(prompt: str, **kwargs):
     final_output = []
     for output in cortex.run():
         final_output.append(output)
+
+    # remove the temporary file
+    os.remove(file_name)
 
     return "\n".join(final_output) + "\n"
