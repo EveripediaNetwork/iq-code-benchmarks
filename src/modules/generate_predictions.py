@@ -47,7 +47,7 @@ def make_prediction(args) -> tuple[str, str, int]:
     Run the prediction with the given LLM
     """
     llm, contract_code, loc = args
-    if "code_only" in llm["code_only"] and llm["code_only"]:
+    if llm["code_only"] if "code_only" in llm else False:
         prompt = contract_code
     else:
         prompt = issues_prediction_prompt.format(code=contract_code)
