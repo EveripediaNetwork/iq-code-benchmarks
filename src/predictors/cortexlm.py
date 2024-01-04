@@ -8,7 +8,6 @@ from cortex.mappers.solidity_vulnerabilities import Mapper as SolidityVulnerabil
 from cortex.injectors.mythirl import Injector as MythirlInjector
 from cortex.injectors.slither import Injector as SlitherInjector
 from cortex.injectors.basic import Injector as BasicInjector
-from cortex.output_validators.json import Validator as JSONValidator
 from cortex import (
     Cortex,
     Prompt,
@@ -34,19 +33,11 @@ def cortexlm(prompt: str, **kwargs):
     loader = Loader(file_name)
     slicers = [Slicer(code, include_global_code=True) for code in loader.code]
 
-    json_validator = JSONValidator([{
-        "function": str,
-        "defect": str,
-        "exists": bool,
-        "description": str,
-    }])
-
     slice_prompts = []
     for slicer in slicers:
         for code_context in slicer.contexts:
             prompt = Prompt(
                 [code_context],
-                validator=json_validator,
             )
             slice_prompts.append(prompt)
 
@@ -58,7 +49,6 @@ def cortexlm(prompt: str, **kwargs):
                 tag='code',
             ),
         ],
-            validator=json_validator
         )
         main_prompts.append(prompt)
 
