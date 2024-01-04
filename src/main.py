@@ -7,6 +7,10 @@ from modules.print_results import print_results
 from lib.toml_utils import read_toml
 from predictors.main import llm_choices_map
 from lib.cache_guard import cache_guard
+import logging
+
+httpx_logger = logging.getLogger("httpx")
+httpx_logger.setLevel(logging.WARNING)  # Suppress HTTP info logs
 
 load_dotenv()
 
