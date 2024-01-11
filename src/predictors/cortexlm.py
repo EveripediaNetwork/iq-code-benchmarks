@@ -7,6 +7,7 @@ from cortex.llm.openai import LLM, ModelNames
 from cortex.mappers.solidity_vulnerabilities import Mapper as SolidityVulnerabilitiesMapper  # noqa: E501
 from cortex.injectors.mythirl import Injector as MythirlInjector
 from cortex.injectors.slither import Injector as SlitherInjector
+from cortex.output_validators.json import Validator as JSONValidator
 from cortex.injectors.basic import Injector as BasicInjector
 from cortex import (
     Cortex,
@@ -16,6 +17,14 @@ from cortex import (
 )
 import tempfile
 import os
+
+
+json_validator = JSONValidator([{
+    "function": str,
+    "defect": str,
+    "exists": bool,
+    "description": str,
+}])
 
 
 def cortexlm(prompt: str, **kwargs):
@@ -35,21 +44,56 @@ def cortexlm(prompt: str, **kwargs):
 
     slice_prompts = []
     for slicer in slicers:
-        for code_context in slicer.contexts:
-            prompt = Prompt(
-                [code_context],
-            )
+        for context in slicer.contexts:
+            prompt = Prompt([context], validator=json_validator)
+            prompt.add_context(Context(
+                f"""
+                - Analyze **exclusively** in the presence of {context.tag} in <code>.
+                - Do not explain the defect if not present in the <code>.
+                - Be brief and concise.
+
+                This is the most important sentence:
+                Output format:
+                [
+                    {{
+                        "function": str,
+                        "defect": str,
+                        "exists": bool,
+                        "description": str
+                    }}
+                ]
+                Do not wrap the output in any codeblocks, directly paste the JSON.
+                """,
+                tag='footer',
+            ))
             slice_prompts.append(prompt)
 
     main_prompts = []
     for code in loader.code:
-        prompt = Prompt([
-            Context(
-                code,
-                tag='code',
-            ),
-        ],
-        )
+        prompt = Prompt([Context(
+            code,
+            tag='code',
+        )], validator=json_validator)
+        prompt.add_context(Context(
+            f"""
+            - Analyze **exclusively** in the presence of {prompt._contexts[0].tag} in <code>.
+            - Do not explain the defect if not present in the <code>.
+            - Be brief and concise.
+
+            This is the most important sentence:
+            Output format:
+            [
+                {{
+                    "function": str,
+                    "defect": str,
+                    "exists": bool,
+                    "description": str
+                }}
+            ]
+            Do not wrap the output in any codeblocks, directly paste the JSON.
+            """,
+            tag='footer',
+        ))
         main_prompts.append(prompt)
 
     mythil_injector = MythirlInjector()
@@ -57,6 +101,12 @@ def cortexlm(prompt: str, **kwargs):
 
     slither_injector = SlitherInjector()
     slither_injector.inject(main_prompts)
+
+    slices_mapper = SolidityVulnerabilitiesMapper(scopes=['local'])
+    global_mapper = SolidityVulnerabilitiesMapper(scopes=['global'])
+
+    slice_prompts = list(slices_mapper.map(slice_prompts))
+    main_prompts = list(global_mapper.map(main_prompts))
 
     prompts = main_prompts + slice_prompts
 
