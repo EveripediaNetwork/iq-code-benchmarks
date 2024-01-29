@@ -1,30 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from cortex.loaders.path import Loader
+from cortex.loaders.path import PathLoader as Loader
 from cortex.slicers.solidity import Slicer
-from cortex.llm.openai import LLM, ModelNames
-from cortex.mappers.solidity_vulnerabilities import Mapper as SolidityVulnerabilitiesMapper  # noqa: E501
-from cortex.injectors.mythirl import Injector as MythirlInjector
-from cortex.injectors.slither import Injector as SlitherInjector
 from cortex.output_validators.json import Validator as JSONValidator
-from cortex.injectors.basic import Injector as BasicInjector
 from cortex import (
     Cortex,
     Prompt,
     Context,
-    Reducer,
 )
-import tempfile
+from cortex.mappers.solidity_issues import Mapper as SolidityIssuesMapper
+from cortex.processors.static_analysis.mythirl import Processor as MythirlProcessor
+from cortex.processors.static_analysis.slither import Processor as SlitherProcessor
+from cortex.injectors.basic import Injector as BasicInjector
+from cortex.processors.llm.openai import LLM, ModelNames
 import os
-
-
-json_validator = JSONValidator([{
-    "function": str,
-    "defect": str,
-    "exists": bool,
-    "description": str,
-}])
+import tempfile
 
 
 def cortexlm(prompt: str, **kwargs):
@@ -40,43 +31,29 @@ def cortexlm(prompt: str, **kwargs):
         file_name = f.name
 
     loader = Loader(file_name)
+
+    # ==========================================================================
+    # 1️⃣ PROCESSOR: LLM - Collect the prompts from code slices and use LLM to detect issues
+    # ==========================================================================
+
+    json_validator = JSONValidator([{
+        "function": str,
+        "issue": str,
+        "title": str,
+        "description": str,
+        "severity": str,
+        "exists": bool,
+    }])
+
+    # 📚 CREATE: slice and main prompts which contains prompts on code slices and the whole code respectively
     slicers = [Slicer(code, include_global_code=True) for code in loader.code]
+    slice_prompts = [Prompt([code_context], json_validator) for slicer in slicers for code_context in slicer.contexts]
+    main_prompts = [Prompt([Context(code, tag='code')], json_validator) for code in loader.code]
 
-    slice_prompts = []
-    for slicer in slicers:
-        for context in slicer.contexts:
-            prompt = Prompt([context], validator=json_validator)
-            prompt.add_context(Context(
-                f"""
-                - Analyze **exclusively** in the presence of {context.tag} in <code>.
-                - Do not explain the defect if not present in the <code>.
-                - Be brief and concise.
-
-                This is the most important sentence:
-                Output format:
-                [
-                    {{
-                        "function": str,
-                        "defect": str,
-                        "exists": bool,
-                        "description": str
-                    }}
-                ]
-                Do not wrap the output in any codeblocks, directly paste the JSON.
-                """,
-                tag='footer',
-            ))
-            slice_prompts.append(prompt)
-
-    main_prompts = []
-    for code in loader.code:
-        prompt = Prompt([Context(
-            code,
-            tag='code',
-        )], validator=json_validator)
-        prompt.add_context(Context(
-            f"""
-            - Analyze **exclusively** in the presence of {prompt._contexts[0].tag} in <code>.
+    # 💉 INJECT: Every prompt with footer to instruct the LLM to produce output properly
+    footer_injector = BasicInjector(Context(
+        """
+            - Analyze **exclusively** in the presence of the given <code>.
             - Do not explain the defect if not present in the <code>.
             - Be brief and concise.
 
@@ -85,72 +62,54 @@ def cortexlm(prompt: str, **kwargs):
             [
                 {{
                     "function": str,
-                    "defect": str,
-                    "exists": bool,
-                    "description": str
+                    "issue": str,
+                    "title": str,
+                    "description": str,
+                    "severity": str,
+                    "exists": bool
                 }}
             ]
             Do not wrap the output in any codeblocks, directly paste the JSON.
-            """,
-            tag='footer',
-        ))
-        main_prompts.append(prompt)
-
-    mythil_injector = MythirlInjector()
-    mythil_injector.inject(main_prompts)
-
-    slither_injector = SlitherInjector()
-    slither_injector.inject(main_prompts)
-
-    slices_mapper = SolidityVulnerabilitiesMapper(scopes=['local'])
-    global_mapper = SolidityVulnerabilitiesMapper(scopes=['global'])
-
-    slice_prompts = list(slices_mapper.map(slice_prompts))
-    main_prompts = list(global_mapper.map(main_prompts))
-
-    prompts = main_prompts + slice_prompts
-
-    mapper = SolidityVulnerabilitiesMapper()
-    prompts = list(mapper.map(prompts))
-
-    footer = Context(
-        f"""
-            - Analyze **exclusively** the presence of {mapper.start_tag} in <code>.
-            - Do not explain the defect if not present in the <code>.
-            - Be brief and concise.
-
-            This is the most important sentence:
-            Output format:
-            [
-                {{
-                    "function": str,
-                    "defect": str,
-                    "exists": bool,
-                    "description": str
-                }}
-            ]
-        Do not wrap the output in any codeblocks, directly paste the JSON.
         """,
         tag='footer',
-    )
-    footer_injector = BasicInjector(footer)
-    footer_injector.inject(prompts)
+    ))
+    footer_injector.inject(slice_prompts)
+    footer_injector.inject(main_prompts)
 
-    llm = LLM(model=ModelNames.GPT_3_5)
+    # 🗺️ MAP: map all the prompts
+    slices_mapper = SolidityIssuesMapper(scopes=['local'])
+    slice_prompts = list(slices_mapper.map(slice_prompts))
+    main_prompts = list(slices_mapper.map(main_prompts))
+    prompts = slice_prompts + main_prompts
+    llm = LLM(model=ModelNames.GPT_4_TURBO)
+    llm_processor_output = llm.process(prompts)
 
-    reducer = Reducer(llm, None)
+    # ==========================================================================
+    # 2️⃣ PROCESSOR: Static Analysis - Mythril and Slither
+    # ==========================================================================
+    mythril_processor = MythirlProcessor()
+    slither_processor = SlitherProcessor()
+    mythril_processor_output = mythril_processor.process(loader.code[0])
+    slither_processor_output = slither_processor.process(loader.code[0])
 
+    # ==========================================================================
+    #  🛠️ Initialize Cortex and pass the processor outputs to get organized results
+    # ==========================================================================
     cortex = Cortex(
-        prompts=prompts,
         llm=llm,
-        reducer=reducer,
+        grouped_outputs=[
+            mythril_processor_output,
+            slither_processor_output,
+            llm_processor_output,
+        ],
     )
-
-    final_output = []
-    for output in cortex.run():
-        final_output.append(output)
 
     # remove the temporary file
     os.remove(file_name)
+
+    final_output = []
+    for output in cortex.outputs:
+        if (output.get('exists')):
+            final_output.append(output)
 
     return "\n".join(final_output) + "\n"
